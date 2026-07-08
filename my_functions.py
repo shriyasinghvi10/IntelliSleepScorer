@@ -6,6 +6,57 @@ import sqlite3
 import os
 import pickle
 
+from channel_select_dialog import load_channel_map
+
+
+# Canonical channel order each model's feature-extraction code expects,
+# keyed by the role names produced by ChannelSelectDialog.get_channel_map().
+MODEL_CHANNEL_ORDER = {
+    "1_LightGBM-2EEG": ["EEG1", "EEG2", "EMG"],
+    "2_LightGBM-1EEG": ["EEG", "EMG"],
+}
+
+
+def _apply_channel_selection(raw, channel_map, model_name):
+    """
+    Given an mne Raw object (all channels as read from the EDF) and a
+    channel_map produced by ChannelSelectDialog, returns two Raw objects:
+
+      raw_scoring: picked + reordered so that channel index order always
+        matches what this model's feature-extraction functions expect
+        (e.g. index 0 = EEG1, 1 = EEG2, 2 = EMG). This means downstream
+        code that does raw_data[0], raw_data[1], etc. keeps working
+        unchanged regardless of the original channel order in the EDF.
+
+      raw_display: scoring channels + any "display only" channels
+        (e.g. TTL/laser/optogenetic channels), for visualization. Scoring
+        channels come first, in the same canonical order as raw_scoring.
+    """
+    expected_order = MODEL_CHANNEL_ORDER.get(model_name)
+    if expected_order is None:
+        raise ValueError(f"Unknown model_name for channel selection: {model_name}")
+
+    scoring_map = channel_map.get("scoring", {})
+    missing = [role for role in expected_order if role not in scoring_map]
+    if missing:
+        raise ValueError(
+            f"Channel map is missing required role(s) {missing} for model '{model_name}'. "
+            "Please re-run channel selection for this file."
+        )
+
+    scoring_ch_names = [scoring_map[role] for role in expected_order]
+
+    raw_scoring = raw.copy().pick(scoring_ch_names)
+    raw_scoring.reorder_channels(scoring_ch_names)
+
+    display_only = [ch for ch in channel_map.get("display_only", []) if ch in raw.ch_names]
+    display_ch_names = scoring_ch_names + display_only
+
+    raw_display = raw.copy().pick(display_ch_names)
+    raw_display.reorder_channels(display_ch_names)
+
+    return raw_scoring, raw_display
+
 
 def printW (string):
     f = open("log", "a")
@@ -181,10 +232,18 @@ def remove_outlier(df_input):
 
 
 
-def save_single_edf_to_csv_2eeg(edf_filepath=None, epoch_len=None, model_name=None, test_run=False, include_score=False):
+def save_single_edf_to_csv_2eeg(edf_filepath=None, epoch_len=None, model_name=None, test_run=False, include_score=False, channel_map=None):
     file_firstname = edf_filepath.split("/")[-1].split('.edf')[0]
     edf_folderpath = edf_filepath.split(file_firstname)[0]
-    
+
+    if channel_map is None:
+        channel_map = load_channel_map(edf_filepath)
+    if channel_map is None:
+        raise ValueError(
+            f"No channel selection found for {edf_filepath}. "
+            "Please select channels for this file before scoring."
+        )
+
     if include_score:
         db3_filepath = edf_path + file_firstname + ".db3"
         connection = sqlite3.connect(db3_filepath)
@@ -200,16 +259,18 @@ def save_single_edf_to_csv_2eeg(edf_filepath=None, epoch_len=None, model_name=No
         sfreq = int(raw.info["sfreq"])
         print(f"sfreq:{sfreq}")
         raw.resample(sfreq=100)
-        resampled_data = raw.get_data()
+        _, raw_display_rs = _apply_channel_selection(raw, channel_map, model_name)
+        resampled_data = raw_display_rs.get_data()
         with open(downsampled_files, 'wb') as f:
             np.save(f, resampled_data)
 
     raw = read_raw_edf(edf_filepath, preload=True)
-    raw_data_length = raw.get_data().shape[1]
+    raw_scoring, raw_display = _apply_channel_selection(raw, channel_map, model_name)
+    raw_data_length = raw_scoring.get_data().shape[1]
     sfreq = int(raw.info["sfreq"])
 
     with open(f"{edf_folderpath}{file_firstname}_ch_names.pickle", 'wb') as fp:
-        pickle.dump(raw.ch_names, fp)
+        pickle.dump(raw_display.ch_names, fp)
 
     if include_score:
         print("raw_data_shape", raw_data_length)
@@ -219,8 +280,8 @@ def save_single_edf_to_csv_2eeg(edf_filepath=None, epoch_len=None, model_name=No
     if test_run:
         return
 
-    raw.filter(1., 40., fir_design='firwin')
-    raw_data = raw.get_data()
+    raw_scoring.filter(1., 40., fir_design='firwin')
+    raw_data = raw_scoring.get_data()
     
     df = pd.DataFrame()
     
@@ -576,9 +637,17 @@ def save_single_edf_to_csv_2eeg(edf_filepath=None, epoch_len=None, model_name=No
     df.to_csv(f"{edf_folderpath}{file_firstname}_{model_name}_epoch_length_{epoch_len}_sec_features.csv")
 
 
-def save_single_edf_to_csv_1eeg(edf_filepath=None, epoch_len=None, model_name=None, test_run=False, include_score=False):
+def save_single_edf_to_csv_1eeg(edf_filepath=None, epoch_len=None, model_name=None, test_run=False, include_score=False, channel_map=None):
     file_firstname = edf_filepath.split("/")[-1].split('.edf')[0]
     edf_folderpath = edf_filepath.split(file_firstname)[0]
+
+    if channel_map is None:
+        channel_map = load_channel_map(edf_filepath)
+    if channel_map is None:
+        raise ValueError(
+            f"No channel selection found for {edf_filepath}. "
+            "Please select channels for this file before scoring."
+        )
 
     if include_score:
         db3_filepath = edf_path + file_firstname + ".db3"
@@ -595,16 +664,18 @@ def save_single_edf_to_csv_1eeg(edf_filepath=None, epoch_len=None, model_name=No
         sfreq = int(raw.info["sfreq"])
         print(f"sfreq:{sfreq}")
         raw.resample(sfreq=100)
-        resampled_data = raw.get_data()
+        _, raw_display_rs = _apply_channel_selection(raw, channel_map, model_name)
+        resampled_data = raw_display_rs.get_data()
         with open(downsampled_files, 'wb') as f:
             np.save(f, resampled_data)
 
     raw = read_raw_edf(edf_filepath, preload=True)
-    raw_data_length = raw.get_data().shape[1]
+    raw_scoring, raw_display = _apply_channel_selection(raw, channel_map, model_name)
+    raw_data_length = raw_scoring.get_data().shape[1]
     sfreq = int(raw.info["sfreq"])
 
     with open(f"{edf_folderpath}{file_firstname}_ch_names.pickle", 'wb') as fp:
-        pickle.dump(raw.ch_names, fp)
+        pickle.dump(raw_display.ch_names, fp)
 
     if include_score:
         print("raw_data_shape", raw_data_length)
@@ -614,8 +685,8 @@ def save_single_edf_to_csv_1eeg(edf_filepath=None, epoch_len=None, model_name=No
     if test_run:
         return
 
-    raw.filter(1., 40., fir_design='firwin')
-    raw_data = raw.get_data()
+    raw_scoring.filter(1., 40., fir_design='firwin')
+    raw_data = raw_scoring.get_data()
     
     df = pd.DataFrame()
     

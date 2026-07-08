@@ -9,11 +9,13 @@ import time
 import mne
 import joblib
 import seaborn as sns
-from PyQt5.QtWidgets import QInputDialog, QMainWindow, QApplication, QFileDialog
+from PyQt5.QtWidgets import QInputDialog, QMainWindow, QApplication, QFileDialog, QMessageBox
 
 from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot
 from ui import Ui_MainWindow
 from my_functions import *
+from mne.io import read_raw_edf as _read_raw_edf_header
+from channel_select_dialog import ChannelSelectDialog, save_channel_map, load_channel_map
 import io
 from contextlib import redirect_stdout
 
@@ -38,7 +40,8 @@ class Thread_run_all_files(QThread):
         self.filepath_list = []
         self.num_files = 0
         self.model_name = None
-        
+        self.channel_maps = {}
+
 
     def run(self):
 
@@ -66,10 +69,11 @@ class Thread_run_all_files(QThread):
             else:
                 self.signal.emit([progress,f"--Started extracting features"])
 
+                channel_map = self.channel_maps.get(filepath)
                 if self.model_name == "1_LightGBM-2EEG":
-                    message1 = save_single_edf_to_csv_2eeg(edf_filepath=filepath, model_name = self.model_name, epoch_len=PARAMETERS['epoch_length'])
+                    message1 = save_single_edf_to_csv_2eeg(edf_filepath=filepath, model_name = self.model_name, epoch_len=PARAMETERS['epoch_length'], channel_map=channel_map)
                 if self.model_name == "2_LightGBM-1EEG":
-                    message1 = save_single_edf_to_csv_1eeg(edf_filepath=filepath, model_name = self.model_name, epoch_len=PARAMETERS['epoch_length'])
+                    message1 = save_single_edf_to_csv_1eeg(edf_filepath=filepath, model_name = self.model_name, epoch_len=PARAMETERS['epoch_length'], channel_map=channel_map)
                 
                 progress = (index+0.5)/self.num_files * 100
                 if message1 is not None:
@@ -161,6 +165,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
         self.button_input_files.clicked.connect(self.update_file_list)
         self.button_clear_input.clicked.connect(self.clear)
         self.button_run.clicked.connect(self.run_all_files)
+        self.button_select_channels.clicked.connect(self.edit_channels_for_selected_file)
         
         # self.combobox_models.currentIndexChanged.connect(self.update_plot_event)
 
@@ -205,11 +210,16 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
         self.df_score_user_edit = None
         self.n_epochs = None
         self.ch_names = None
+        self.channel_maps = {}
+        self.model_name = None
 
         models = os.listdir("./models/")
         models = sorted(models)
         for model in models:
             self.combobox_models.addItem(model)
+
+        if self.combobox_models.count() > 0:
+            self.update_model()
 
     def checkbox_for_running_SHAP(self, state):
         if state == 2:  # state 2 corresponds to checked state
@@ -278,7 +288,87 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
             self.label_status.setText("Done")
 
 
+    def ensure_channel_maps(self):
+        """
+        Make sure every file in self.filepath_list has a channel role
+        mapping (which channels are EEG/EMG for scoring, which are
+        display-only, which to ignore) before scoring starts. Reuses a
+        cached mapping from disk if one already exists for a file, and
+        otherwise pops up ChannelSelectDialog. Returns False if the user
+        cancels, so the caller can abort the run.
+        """
+        for filepath in self.filepath_list:
+            cached_map = load_channel_map(filepath)
+            if cached_map is not None:
+                self.channel_maps[filepath] = cached_map
+                continue
+
+            try:
+                raw_header = _read_raw_edf_header(filepath, preload=False)
+                ch_names = raw_header.ch_names
+            except Exception as e:
+                QMessageBox.warning(self, "Could not read EDF", f"Failed to read channels from {filepath}:\n{e}")
+                return False
+
+            filename = filepath.split("/")[-1]
+            dialog = ChannelSelectDialog(ch_names, self.model_name, filename=filename, parent=self)
+            result = dialog.exec_()
+            if result != dialog.Accepted:
+                return False
+
+            channel_map = dialog.get_channel_map()
+            save_channel_map(filepath, channel_map)
+            self.channel_maps[filepath] = channel_map
+
+        return True
+
+
+    def edit_channels_for_selected_file(self):
+        """Lets the user re-open channel selection for whichever file is
+        currently highlighted in the input list, even if a mapping was
+        already cached (e.g. to fix a mistake or handle a re-wired probe)."""
+        selected_items = self.listWidget_input.selectedItems()
+        if len(selected_items) == 0:
+            QMessageBox.information(self, "No file selected", "Select a file in the list first.")
+            return
+
+        filepath = selected_items[0].text()
+        try:
+            raw_header = _read_raw_edf_header(filepath, preload=False)
+            ch_names = raw_header.ch_names
+        except Exception as e:
+            QMessageBox.warning(self, "Could not read EDF", f"Failed to read channels from {filepath}:\n{e}")
+            return
+
+        filename = filepath.split("/")[-1]
+        dialog = ChannelSelectDialog(ch_names, self.model_name, filename=filename, parent=self)
+
+        existing_map = load_channel_map(filepath)
+        if existing_map is not None:
+            for role, ch in existing_map.get("scoring", {}).items():
+                if ch in dialog.combo_boxes:
+                    dialog.combo_boxes[ch].setCurrentText(f"{role} (scoring)")
+            for ch in existing_map.get("display_only", []):
+                if ch in dialog.combo_boxes:
+                    dialog.combo_boxes[ch].setCurrentText("Display Only")
+            for ch in existing_map.get("ignore", []):
+                if ch in dialog.combo_boxes:
+                    dialog.combo_boxes[ch].setCurrentText("Ignore")
+
+        result = dialog.exec_()
+        if result != dialog.Accepted:
+            return
+
+        channel_map = dialog.get_channel_map()
+        save_channel_map(filepath, channel_map)
+        self.channel_maps[filepath] = channel_map
+        self.label_status.setText(f"Updated channel selection for {filename}")
+
+
     def run_all_files(self):
+        if not self.ensure_channel_maps():
+            return
+
         self.button_run.setEnabled(False)
         self.button_input_files.setEnabled(False)
         self.button_clear_input.setEnabled(False)
@@ -286,6 +376,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
 
         self.thread_run.filepath_list = self.filepath_list
         self.thread_run.model_name = self.model_name
+        self.thread_run.channel_maps = self.channel_maps
         self.thread_run.start()
 
 

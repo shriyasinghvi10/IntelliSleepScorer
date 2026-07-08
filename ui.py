@@ -85,8 +85,14 @@ class Ui_MainWindow(object):
         self.combobox_models.setGeometry(QRect(140, 120, 240, 40))
 
 
+        self.button_select_channels = QPushButton(self)
+        self.button_select_channels.setGeometry(QRect(40, 160, 340, 30))
+        self.button_select_channels.setStyleSheet("font: 9pt;")
+        self.button_select_channels.setObjectName("button_select_channels")
+        self.button_select_channels.setText("Select/Edit Channels for Highlighted File")
+
         self.listWidget_input = QListWidget(self)
-        self.listWidget_input.setGeometry(QRect(40, 180, 340, 270))
+        self.listWidget_input.setGeometry(QRect(40, 200, 340, 250))
         self.listWidget_input.setObjectName("listWidget_input")
         self.listWidget_input
 

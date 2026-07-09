@@ -345,15 +345,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
 
         existing_map = load_channel_map(filepath)
         if existing_map is not None:
-            for role, ch in existing_map.get("scoring", {}).items():
-                if ch in dialog.combo_boxes:
-                    dialog.combo_boxes[ch].setCurrentText(f"{role} (scoring)")
-            for ch in existing_map.get("display_only", []):
-                if ch in dialog.combo_boxes:
-                    dialog.combo_boxes[ch].setCurrentText("Display Only")
-            for ch in existing_map.get("ignore", []):
-                if ch in dialog.combo_boxes:
-                    dialog.combo_boxes[ch].setCurrentText("Ignore")
+            dialog.prefill_from_channel_map(existing_map)
 
         result = dialog.exec_()
         if result != dialog.Accepted:
@@ -435,7 +427,13 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
 
         self.max_time = int(len(self.eeg_100hz[0])/100)   # 100hz sampling frequency
         time_sec = np.arange(0, self.max_time, 0.01)
-        time_epochs_start = np.arange(0, self.max_time, PARAMETERS['epoch_length'])
+        # Build the hypnogram time bins directly from n_epochs (the real
+        # number of scored epochs) rather than recomputing independently
+        # from max_time. Recording length is rarely an exact multiple of
+        # epoch_length * sfreq, so np.arange(0, max_time, epoch_length)
+        # can produce one more/fewer bin than there are actual scores,
+        # causing a "shapes (N,) and (N-1,)" crash in ax_hypnogram.plot.
+        time_epochs_start = np.arange(self.n_epochs) * PARAMETERS['epoch_length']
         time_epochs_end = time_epochs_start + PARAMETERS['epoch_length']
         
         df = pd.read_csv(self.feature_file_path)

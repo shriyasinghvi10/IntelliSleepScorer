@@ -921,5 +921,5 @@ def get_shap (df, features, model):
     df_500samples = df.sample(500)
     indices_500samples = df_500samples.index.values
     shap_values_500samples = explainer.shap_values(df_500samples[features])
-    return explainer, shap_values_500samples, indices_500samples
+    return explainer, shap_values_500samples, indices_500samples 
 

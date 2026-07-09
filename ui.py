@@ -67,6 +67,7 @@ class Ui_MainWindow(object):
         # self.combobox_epoch_length.setInputMask("00")
         self.combobox_epoch_length.addItem("4")
         self.combobox_epoch_length.addItem("10")
+        self.combobox_epoch_length.addItem("12")
         self.combobox_epoch_length.addItem("20")
 
 
@@ -260,5 +261,4 @@ class Ui_MainWindow(object):
 
     def write(self, txt):
         self.textbox.appendPlainText(str(txt))
-
 

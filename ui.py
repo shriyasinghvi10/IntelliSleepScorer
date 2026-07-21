@@ -234,6 +234,12 @@ class Ui_MainWindow(object):
         self.label_shap_global.setWordWrap(True)
         self.label_shap_global.setText("Top 10 features with the highest absolute Global SHAP values (calculated from 500 randomly sampled epochs). SHAP value shows how much a feature affected the prediction. Positive SHAP values indicate positive contribution to the prediction, and vice versa. Samples with redder color have higher feature values. Here is an example on how to interpret the plots. If in the WAKE SHAP plot, you see more redder dots on the right side of feature 'emg_abs_max' (more positive SHAP), it indicates that in general higher 'emg_abs_max' increases the likelihood of being scored as Wake. Note that SHAP value only explains why the model makes the decision, it doesn't evaluate whether the decision is correct or not.")
 
+        self.button_export_calibration_template = QPushButton(self)
+        self.button_export_calibration_template.setStyleSheet("font: 9pt;")
+        self.button_export_calibration_template.setObjectName("button_export_calibration_template")
+        self.button_export_calibration_template.setText("Export Calibration Template (Visible Range)")
+        self.button_export_calibration_template.setEnabled(False)
+
         layout_right_pane.addWidget(self.label_select_number_epochs, 0, 0, 1, 1)
         layout_right_pane.addWidget(self.combobox_select_n_epochs, 0, 1, 1, 1)
         layout_right_pane.addWidget(self.label_selected_epoch_stage, 0, 2, 1, 1)
@@ -243,12 +249,13 @@ class Ui_MainWindow(object):
         layout_right_pane.addWidget(self.button_previous, 0, 6, 1, 1)
         layout_right_pane.addWidget(self.button_next, 0, 7, 1, 1)
         layout_right_pane.addWidget(self.button_next_more, 0, 8, 1, 1)
-        layout_right_pane.addWidget(self.label_plot, 1, 0, 1, 9)
-        layout_right_pane.addWidget(self.canvas, 2, 0, 1, 9)
-        layout_right_pane.addWidget(self.canvas_shap_epoch, 3, 0, 1, 9)
-        layout_right_pane.addWidget(self.label_shap_epoch, 4, 0, 1, 9)
-        layout_right_pane.addWidget(self.canvas_shap_global, 5, 0, 1, 9)
-        layout_right_pane.addWidget(self.label_shap_global, 6, 0, 1, 9)
+        layout_right_pane.addWidget(self.button_export_calibration_template, 1, 0, 1, 9)
+        layout_right_pane.addWidget(self.label_plot, 2, 0, 1, 9)
+        layout_right_pane.addWidget(self.canvas, 3, 0, 1, 9)
+        layout_right_pane.addWidget(self.canvas_shap_epoch, 4, 0, 1, 9)
+        layout_right_pane.addWidget(self.label_shap_epoch, 5, 0, 1, 9)
+        layout_right_pane.addWidget(self.canvas_shap_global, 6, 0, 1, 9)
+        layout_right_pane.addWidget(self.label_shap_global, 7, 0, 1, 9)
 
 
         self.right_pane = QWidget(self)

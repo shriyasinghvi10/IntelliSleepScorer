@@ -280,7 +280,7 @@ def save_single_edf_to_csv_2eeg(edf_filepath=None, epoch_len=None, model_name=No
     if test_run:
         return
 
-    raw_scoring.filter(1., 40., fir_design='firwin')
+    raw_scoring.filter(1., 40., fir_design='firwin', n_jobs=-1)
     raw_data = raw_scoring.get_data()
     
     df = pd.DataFrame()
@@ -416,7 +416,7 @@ def save_single_edf_to_csv_2eeg(edf_filepath=None, epoch_len=None, model_name=No
     # firwin band pass filter
     print("get firwin band passed features")
     raw_firwin_delta = raw.copy()
-    raw_firwin_delta.filter(1, 4, fir_design='firwin')
+    raw_firwin_delta.filter(1, 4, fir_design='firwin', n_jobs=-1)
     raw_firwin_delta_data = raw_firwin_delta.get_data()
     df['eeg1_firwin_delta_abs_mean'] = get_epoch_abs_mean(raw_firwin_delta_data[0], sfreq=sfreq, epoch_len=epoch_len)
     df['eeg2_firwin_delta_abs_mean'] = get_epoch_abs_mean(raw_firwin_delta_data[1], sfreq=sfreq, epoch_len=epoch_len)
@@ -452,7 +452,7 @@ def save_single_edf_to_csv_2eeg(edf_filepath=None, epoch_len=None, model_name=No
     del raw_firwin_delta_data
     
     raw_firwin_theta = raw.copy()
-    raw_firwin_theta.filter(4, 8, fir_design='firwin')
+    raw_firwin_theta.filter(4, 8, fir_design='firwin', n_jobs=-1)
     raw_firwin_theta_data = raw_firwin_theta.get_data()
     df['eeg1_firwin_theta_abs_mean'] = get_epoch_abs_mean(raw_firwin_theta_data[0], sfreq=sfreq, epoch_len=epoch_len)
     df['eeg2_firwin_theta_abs_mean'] = get_epoch_abs_mean(raw_firwin_theta_data[1], sfreq=sfreq, epoch_len=epoch_len)
@@ -488,7 +488,7 @@ def save_single_edf_to_csv_2eeg(edf_filepath=None, epoch_len=None, model_name=No
     del raw_firwin_theta_data
     
     raw_firwin_alpha = raw.copy()
-    raw_firwin_alpha.filter(8, 12, fir_design='firwin')
+    raw_firwin_alpha.filter(8, 12, fir_design='firwin', n_jobs=-1)
     raw_firwin_alpha_data = raw_firwin_alpha.get_data()
     df['eeg1_firwin_alpha_abs_mean'] = get_epoch_abs_mean(raw_firwin_alpha_data[0], sfreq=sfreq, epoch_len=epoch_len)
     df['eeg2_firwin_alpha_abs_mean'] = get_epoch_abs_mean(raw_firwin_alpha_data[1], sfreq=sfreq, epoch_len=epoch_len)
@@ -524,7 +524,7 @@ def save_single_edf_to_csv_2eeg(edf_filepath=None, epoch_len=None, model_name=No
     del raw_firwin_alpha_data
     
     raw_firwin_sigma = raw.copy()
-    raw_firwin_sigma.filter(12, 15, fir_design='firwin')
+    raw_firwin_sigma.filter(12, 15, fir_design='firwin', n_jobs=-1)
     raw_firwin_sigma_data = raw_firwin_sigma.get_data()
     df['eeg1_firwin_sigma_abs_mean'] = get_epoch_abs_mean(raw_firwin_sigma_data[0], sfreq=sfreq, epoch_len=epoch_len)
     df['eeg2_firwin_sigma_abs_mean'] = get_epoch_abs_mean(raw_firwin_sigma_data[1], sfreq=sfreq, epoch_len=epoch_len)
@@ -560,7 +560,7 @@ def save_single_edf_to_csv_2eeg(edf_filepath=None, epoch_len=None, model_name=No
     del raw_firwin_sigma_data
     
     raw_firwin_beta = raw.copy()
-    raw_firwin_beta.filter(15, 30, fir_design='firwin')
+    raw_firwin_beta.filter(15, 30, fir_design='firwin', n_jobs=-1)
     raw_firwin_beta_data = raw_firwin_beta.get_data()
     df['eeg1_firwin_beta_abs_mean'] = get_epoch_abs_mean(raw_firwin_beta_data[0], sfreq=sfreq, epoch_len=epoch_len)
     df['eeg2_firwin_beta_abs_mean'] = get_epoch_abs_mean(raw_firwin_beta_data[1], sfreq=sfreq, epoch_len=epoch_len)
@@ -596,7 +596,7 @@ def save_single_edf_to_csv_2eeg(edf_filepath=None, epoch_len=None, model_name=No
     del raw_firwin_beta_data
 
     raw_firwin_gamma = raw.copy()
-    raw_firwin_gamma.filter(30, 40, fir_design='firwin')
+    raw_firwin_gamma.filter(30, 40, fir_design='firwin', n_jobs=-1)
     raw_firwin_gamma_data = raw_firwin_gamma.get_data()
     df['eeg1_firwin_gamma_abs_mean'] = get_epoch_abs_mean(raw_firwin_gamma_data[0], sfreq=sfreq, epoch_len=epoch_len)
     df['eeg2_firwin_gamma_abs_mean'] = get_epoch_abs_mean(raw_firwin_gamma_data[1], sfreq=sfreq, epoch_len=epoch_len)
@@ -685,7 +685,7 @@ def save_single_edf_to_csv_1eeg(edf_filepath=None, epoch_len=None, model_name=No
     if test_run:
         return
 
-    raw_scoring.filter(1., 40., fir_design='firwin')
+    raw_scoring.filter(1., 40., fir_design='firwin', n_jobs=-1)
     raw_data = raw_scoring.get_data()
     
     df = pd.DataFrame()
@@ -772,7 +772,7 @@ def save_single_edf_to_csv_1eeg(edf_filepath=None, epoch_len=None, model_name=No
     # firwin band pass filter
     print("get firwin band passed features")
     raw_firwin_delta = raw.copy()
-    raw_firwin_delta.filter(1, 4, fir_design='firwin')
+    raw_firwin_delta.filter(1, 4, fir_design='firwin', n_jobs=-1)
     raw_firwin_delta_data = raw_firwin_delta.get_data()
     df['eeg_firwin_delta_abs_mean'] = get_epoch_abs_mean(raw_firwin_delta_data[0], sfreq=sfreq, epoch_len=epoch_len)
     df['eeg_firwin_delta_abs_median'] = get_epoch_abs_median(raw_firwin_delta_data[0], sfreq=sfreq, epoch_len=epoch_len)
@@ -793,7 +793,7 @@ def save_single_edf_to_csv_1eeg(edf_filepath=None, epoch_len=None, model_name=No
     del raw_firwin_delta_data
     
     raw_firwin_theta = raw.copy()
-    raw_firwin_theta.filter(4, 8, fir_design='firwin')
+    raw_firwin_theta.filter(4, 8, fir_design='firwin', n_jobs=-1)
     raw_firwin_theta_data = raw_firwin_theta.get_data()
     df['eeg_firwin_theta_abs_mean'] = get_epoch_abs_mean(raw_firwin_theta_data[0], sfreq=sfreq, epoch_len=epoch_len)
     df['eeg_firwin_theta_abs_median'] = get_epoch_abs_median(raw_firwin_theta_data[0], sfreq=sfreq, epoch_len=epoch_len)
@@ -814,7 +814,7 @@ def save_single_edf_to_csv_1eeg(edf_filepath=None, epoch_len=None, model_name=No
     del raw_firwin_theta_data
     
     raw_firwin_alpha = raw.copy()
-    raw_firwin_alpha.filter(8, 12, fir_design='firwin')
+    raw_firwin_alpha.filter(8, 12, fir_design='firwin', n_jobs=-1)
     raw_firwin_alpha_data = raw_firwin_alpha.get_data()
     df['eeg_firwin_alpha_abs_mean'] = get_epoch_abs_mean(raw_firwin_alpha_data[0], sfreq=sfreq, epoch_len=epoch_len)
     df['eeg_firwin_alpha_abs_median'] = get_epoch_abs_median(raw_firwin_alpha_data[0], sfreq=sfreq, epoch_len=epoch_len)
@@ -835,7 +835,7 @@ def save_single_edf_to_csv_1eeg(edf_filepath=None, epoch_len=None, model_name=No
     del raw_firwin_alpha_data
     
     raw_firwin_sigma = raw.copy()
-    raw_firwin_sigma.filter(12, 15, fir_design='firwin')
+    raw_firwin_sigma.filter(12, 15, fir_design='firwin', n_jobs=-1)
     raw_firwin_sigma_data = raw_firwin_sigma.get_data()
     df['eeg_firwin_sigma_abs_mean'] = get_epoch_abs_mean(raw_firwin_sigma_data[0], sfreq=sfreq, epoch_len=epoch_len)
     df['eeg_firwin_sigma_abs_median'] = get_epoch_abs_median(raw_firwin_sigma_data[0], sfreq=sfreq, epoch_len=epoch_len)
@@ -856,7 +856,7 @@ def save_single_edf_to_csv_1eeg(edf_filepath=None, epoch_len=None, model_name=No
     del raw_firwin_sigma_data
     
     raw_firwin_beta = raw.copy()
-    raw_firwin_beta.filter(15, 30, fir_design='firwin')
+    raw_firwin_beta.filter(15, 30, fir_design='firwin', n_jobs=-1)
     raw_firwin_beta_data = raw_firwin_beta.get_data()
     df['eeg_firwin_beta_abs_mean'] = get_epoch_abs_mean(raw_firwin_beta_data[0], sfreq=sfreq, epoch_len=epoch_len)
     df['eeg_firwin_beta_abs_median'] = get_epoch_abs_median(raw_firwin_beta_data[0], sfreq=sfreq, epoch_len=epoch_len)
@@ -877,7 +877,7 @@ def save_single_edf_to_csv_1eeg(edf_filepath=None, epoch_len=None, model_name=No
     del raw_firwin_beta_data
 
     raw_firwin_gamma = raw.copy()
-    raw_firwin_gamma.filter(30, 40, fir_design='firwin')
+    raw_firwin_gamma.filter(30, 40, fir_design='firwin', n_jobs=-1)
     raw_firwin_gamma_data = raw_firwin_gamma.get_data()
     df['eeg_firwin_gamma_abs_mean'] = get_epoch_abs_mean(raw_firwin_gamma_data[0], sfreq=sfreq, epoch_len=epoch_len)
     df['eeg_firwin_gamma_abs_median'] = get_epoch_abs_median(raw_firwin_gamma_data[0], sfreq=sfreq, epoch_len=epoch_len)
@@ -921,5 +921,5 @@ def get_shap (df, features, model):
     df_500samples = df.sample(500)
     indices_500samples = df_500samples.index.values
     shap_values_500samples = explainer.shap_values(df_500samples[features])
-    return explainer, shap_values_500samples, indices_500samples 
+    return explainer, shap_values_500samples, indices_500samples
 

@@ -183,6 +183,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
         self.combobox_select_n_epochs.currentIndexChanged.connect(self.update_display_n_epochs)
         self.button_goto_epoch.clicked.connect(self.update_display_goto_epoch)
         self.button_previous.clicked.connect(self.update_display_previous)
+        self.button_export_calibration_template.clicked.connect(self.export_calibration_template)
         self.button_previous_more.clicked.connect(self.update_display_previous_more)
         self.button_next.clicked.connect(self.update_display_next)
         self.button_next_more.clicked.connect(self.update_display_next_more)
@@ -567,6 +568,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
         self.button_previous_more.setEnabled(True)
         self.button_next.setEnabled(True)
         self.button_next_more.setEnabled(True)
+        self.button_export_calibration_template.setEnabled(True)
 
         if variable.run_SHAP:
 
@@ -903,6 +905,59 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
         ax_shap_rem.set_title(f"REM SHAP Values\nEpoch: {self.epoch_index_shap}", fontsize=10)
 
         self.canvas_shap_epoch.draw()
+
+
+    def export_calibration_template(self):
+        """
+        Exports a starting-point CSV for the calibration.py workflow,
+        covering exactly the epoch range currently visible on screen --
+        so you don't have to hand-convert minutes/hours into epoch numbers.
+
+        The Stage_Code column is pre-filled with the model's OWN current
+        predictions for these epochs, as a starting point to correct rather
+        than type from scratch (much faster when most epochs are already
+        right) -- but every epoch in this range should be reviewed against
+        your actual manual scoring (e.g. SleepSign) before using this file
+        with calibration.py, since the whole point is to supply CORRECT
+        labels, not the model's possibly-wrong ones.
+        """
+        if self.scores is None or self.edf_path is None:
+            QMessageBox.information(self, "Nothing to export", "Visualize a scored file first.")
+            return
+
+        n_epochs_display = self.get_n_epochs_display()
+        start = max(0, self.epoch_start)
+        end = min(self.n_epochs, self.epoch_start + n_epochs_display)
+
+        if start >= end:
+            QMessageBox.warning(self, "Invalid range", "The currently visible epoch range is empty or invalid.")
+            return
+
+        epoch_numbers = list(range(start, end))
+        df_template = pd.DataFrame({
+            "Epoch No.": epoch_numbers,
+            "Stage_Code": self.scores[start:end],
+            "Stage": self.stages[start:end],
+        })
+
+        folder = os.path.dirname(self.edf_path) + os.sep
+        firstname = os.path.basename(self.edf_path).split(".edf")[0]
+        duration_sec = (end - start) * PARAMETERS['epoch_length']
+        duration_min = duration_sec / 60
+        template_path = os.path.join(
+            folder, f"{firstname}_calibration_template_epochs_{start}_to_{end-1}.csv"
+        )
+        df_template.to_csv(template_path, index=False)
+
+        QMessageBox.information(
+            self, "Calibration template exported",
+            f"Saved: {template_path}\n\n"
+            f"Covers epochs {start}-{end-1} ({duration_min:.1f} minutes).\n\n"
+            "The Stage_Code/Stage columns are pre-filled with the model's current "
+            "predictions as a starting point -- go through and correct any wrong "
+            "epochs against your actual manual scoring before using this file "
+            "with calibration.py. Only correct labels should go into calibration."
+        )
 
 
     def get_n_epochs_display(self):

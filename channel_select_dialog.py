@@ -248,4 +248,4 @@ def load_channel_map(edf_filepath):
     if os.path.exists(map_path):
         with open(map_path, "r") as f:
             return json.load(f)
-    return None 
+    return None
